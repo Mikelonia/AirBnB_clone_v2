@@ -1,38 +1,49 @@
 #!/usr/bin/env bash
 # Sets up a web server for deployment of web_static. By Okpako Michael
 
-apt-get update
-apt-get install -y nginx
+# Install Nginx if not already installed
+if ! command -v nginx &> /dev/null; then
+    sudo apt-get update
+    sudo apt-get install -y nginx
+fi
 
-mkdir -p /data/web_static/releases/test/
-mkdir -p /data/web_static/shared/
-echo "Holberton School" > /data/web_static/releases/test/index.html
-ln -sf /data/web_static/releases/test/ /data/web_static/current
+# Create necessary directories if they don't exist
+sudo mkdir -p /data/web_static/{releases/test,shared}
 
-chown -R ubuntu /data/
-chgrp -R ubuntu /data/
+# Create the fake HTML file with the desired content
+sudo tee /data/web_static/releases/test/index.html <<EOF
+<html>
+  <head>
+  </head>
+  <body>
+    Holberton School
+  </body>
+</html>
+EOF
 
-printf %s "server {
+# Create the symbolic link
+sudo ln -sf /data/web_static/releases/test /data/web_static/current
+
+# Give ownership of the /data/ folder to the ubuntu user and group
+sudo chown -R ubuntu:ubuntu /data/
+
+# Update Nginx configuration to handle /hbnb_static URL
+sudo tee /etc/nginx/sites-available/default <<EOF
+server {
     listen 80 default_server;
-    listen [::]:80 default_server;
-    add_header X-Served-By $HOSTNAME;
-    root   /var/www/html;
-    index  index.html index.htm;
-
-    location /hbnb_static {
-        alias /data/web_static/current;
-        index index.html index.htm;
+    server_name _;
+    location /hbnb_static/ {
+        alias /data/web_static/current/;
+        index index.html;
     }
-
-    location /redirect_me {
-        return 301 http://cuberule.com/;
+    location / {
+        # Add other configurations here if needed
     }
+}
+EOF
 
-    error_page 404 /404.html;
-    location /404 {
-      root /var/www/html;
-      internal;
-    }
-}" > /etc/nginx/sites-available/default
+# Restart Nginx to apply changes
+sudo service nginx restart
 
-service nginx restart 
+exit 0
+
