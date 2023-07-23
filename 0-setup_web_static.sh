@@ -27,8 +27,20 @@ sudo ln -sf /data/web_static/releases/test /data/web_static/current
 # Give ownership of the /data/ folder to the ubuntu user and group
 sudo chown -R ubuntu:ubuntu /data/
 
-# Update Nginx configuration
-sudo sed -i '/listen 80 default_server;/a location /hbnb_static/ {\n\talias /data/web_static/current/;\n\tindex index.html;\n}\n' /etc/nginx/sites-available/default
+# Update Nginx configuration to handle /hbnb_static URL
+sudo tee /etc/nginx/sites-available/default <<EOF
+server {
+    listen 80 default_server;
+    server_name _;
+    location /hbnb_static/ {
+        alias /data/web_static/current/;
+        index index.html;
+    }
+    location / {
+        # Add other configurations here if needed
+    }
+}
+EOF
 
 # Restart Nginx to apply changes
 sudo service nginx restart
